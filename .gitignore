@@ -1,0 +1,12 @@
+
+*.png
+/.idea
+/__pycache__
+/data0
+/models0
+/models
+/models1
+/models2
+/models3
+/models4
+*.pth
