@@ -11,28 +11,30 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.autograd.set_detect_anomaly(True)
 import os
 from sklearn.decomposition import PCA
+from scipy.stats import multivariate_normal
 from dataloader import CustomImageDataset
-from utils import show_and_save,plot_loss,TopHalfCrop
+from utils import show_and_save,plot_loss,TopHalfCrop,loss_function
 
-from models4 import VAE_GAN,Discriminator
-
+from models8 import VAE_GAN,Discriminator
 
 if __name__=='__main__':
     # 批次大小
     batch_size = 1
     # 每包数据大小
     pack_size = 600
+    # 故障数据大小
+    fault_size = 200
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_1'
+    models_dir = 'models8'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
-    gamma=15
+    # gamma=15
     # 阈值调整系数
     C = 3
     # 数据预处理
     transform = transforms.Compose([
-        transforms.Resize((150, 100)),  # 根据需要调整图像大小
+        transforms.Resize((150, 99)),  # 根据需要调整图像大小
         TopHalfCrop(),  # 保留上半部分，裁剪掉下半部分
         transforms.ToTensor(),  # 将PIL图像转换为Tensor
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 标准化
@@ -45,7 +47,7 @@ if __name__=='__main__':
     show_and_save("testing", make_grid((real_batch[0] * 0.5 + 0.5).cpu(), 1))
 
     # 定义损失函数
-    criterion=nn.BCELoss().to(device)
+    # criterion=nn.BCELoss().to(device)
 
     # 初始化模型结构
     # 创建VAE_GAN实例，以及单独的编码器、解码器和判别器实例
@@ -82,8 +84,6 @@ if __name__=='__main__':
     vae_gan = vae_gan.to(device)
     discrim = Discriminator().to(device)
 
-    # 定义损失函数
-    # criterion = nn.BCELoss().to(device)
     # 将模型设置为评估模式
 
     vae_gan.eval()
@@ -115,9 +115,11 @@ if __name__=='__main__':
             torch.cuda.manual_seed(0)
         for i, (data, _) in enumerate(test_loader, 0):
             # 获取批量大小，用于后续的标签和数据准备
-            bs = data.size()[0]
+            # bs = data.size()[0]
             datav = Variable(data.to(device))
             # 通过生成模型获得输入数据的均值、对数方差和重构输出
+            # 设置随机种子
+            torch.manual_seed(0)
             mean, logvar, rec_enc = vae_gan(datav)
             # # 创建形状为64,128的正态分布随机变量，用作生成新样本的输入
             # z_p = Variable(torch.randn(batch_size, 128).to(device))
@@ -144,34 +146,87 @@ if __name__=='__main__':
             # gan_loss_list.append(gan_loss.item())
             #
             #
-            # output = discrim(datav)[0]
-            # errD_real = criterion(output, ones_label)
-            # output = discrim(rec_enc)[0]
+            # 创建形状为批量大小的全1张量，用作真实样本的标签
+            # ones_label = Variable(torch.ones(bs, 1).to(device))
+            # # 创建形状为批量大小的全0张量，用作生成样本的标签
+            # zeros_label = Variable(torch.zeros(bs, 1).to(device))
+            # # 创建固定形状为64的全0张量，用于特定场景下的标签
+            # zeros_label1 = Variable(torch.zeros(batch_size, 1).to(device))
+            # # 创建形状为64,128的正态分布随机变量，用作生成新样本的输入
+            # z_p = Variable(torch.randn(batch_size, 128).to(device))
+            # # 使用生成模型的解码器生成新样本
+            # # 设置随机种子
+            # torch.manual_seed(0)
+            # x_p_tilda = vae_gan.decoder(z_p)
+
+            # output, x_l = discrim(datav)
+            # # errD_real = criterion(output, ones_label)
+            # output, x_l_tilda = discrim(rec_enc)
             # errD_rec_enc = criterion(output, zeros_label)
             # output = discrim(x_p_tilda)[0]
             # errD_rec_noise = criterion(output, zeros_label1)
-            # gan_loss = errD_real + errD_rec_enc + errD_rec_noise
+            # gan_loss = errD_real + errD_rec_enc
+            # gan_loss_list.append(gan_loss.cpu().numpy())
 
-
+            # 计算重构损失，即隐藏特征的平方差的均值
+            # rec_loss = ((x_l_tilda - x_l) ** 2).mean()
+            # rec_loss = ((x_l_tilda - x_l) ** 2)
+            # rec_loss_mean = rec_loss.mean()
+            # 计算解码器的错误，结合重构损失和生成对抗损失
+            # err_dec = rec_loss_mean
             # 通过鉴别器获取重构数据的隐藏特征
             x_l_tilda = discrim(rec_enc)[1]
             # 通过鉴别器获取原始数据的隐藏特征
             x_l = discrim(datav)[1]
-            # 计算重构损失，即隐藏特征的平方差的均值
-            # rec_loss = ((x_l_tilda - x_l) ** 2).mean()
-            rec_loss = ((x_l_tilda - x_l) ** 2)
-            rec_loss_mean = rec_loss.mean()
-            # # 计算解码器的错误，结合重构损失和生成对抗损失
-            # err_dec = gamma * rec_loss - gan_loss
-            # 将重构损失添加到列表中，用于后续统计或输出
-            # recon_loss_list.append(rec_loss_mean.item())
-            # recon_loss_list.append(rec_loss_mean.cpu().numpy())
-            recon_loss_list.extend(rec_loss.cpu().numpy())
 
+            rec_loss = ((x_l_tilda - x_l) ** 2)
+            rec_loss_mean = rec_enc.mean()
+            # mean, logvar, rec_enc = vae_gan(datav)
+            # vae_loss = loss_function(rec_enc, datav, mean, logvar)
+            err_dec = x_l.mean()
+            # 将重构损失添加到列表中，用于后续统计或输出
+            recon_loss_list.append(err_dec.cpu().numpy())
+            # recon_loss_list.append(rec_loss_mean.cpu().numpy())
+            # recon_loss_list.extend(rec_loss.cpu().numpy())
+
+
+    # 将列表转换为 NumPy 数组以便进行数值操作
+    recon_loss_list = np.array(recon_loss_list)
+    # # 过滤数据
+    # filtered_scores_list = []
+    # for i in range(int(len(recon_loss_list) / fault_size)):
+    #     recon_loss_score = recon_loss_list[i * fault_size:(i + 1) * fault_size]
+    #     # 计算均值和标准差
+    #     mean = np.mean(recon_loss_score)
+    #     std = np.std(recon_loss_score)
+    #
+    #     # 定义剔除异常值阈值使用3倍标准差
+    #     threshold = 3
+    #     lower_bound = mean - threshold * std
+    #     upper_bound = mean + threshold * std
+    #
+    #     # 过滤数据
+    #     for j in range(len(recon_loss_score)):
+    #         if recon_loss_score[j] < lower_bound:
+    #             recon_loss_score[j] = lower_bound
+    #         elif recon_loss_score[j] > upper_bound:
+    #             recon_loss_score[j] = upper_bound
+    #     filtered_scores_list.append(recon_loss_score)
     # Calculate the anomaly score
+    # 最大最小归一化
+    # 计算最小值和最大值
+    filtered_scores_list = np.array(recon_loss_list)
+    filtered_scores_list = filtered_scores_list.reshape(-1,1)
+    min_value = np.min(filtered_scores_list)
+    max_value = np.max(filtered_scores_list)
+    # 应用最小-最大标准化
+    # filtered_scores_list = (filtered_scores_list - min_value) / (max_value - min_value)
+    # 将[0, 1]范围的数据缩放到[-1, 1]的范围
+    # filtered_scores_list = filtered_scores_list * 2 - 1
+
     plt.figure(figsize=(10, 5))
-    for i in range(int(len(recon_loss_list) / pack_size)):
-        recon_loss_score = recon_loss_list[i * pack_size:(i + 1) * pack_size]
+    for i in range(int(len(filtered_scores_list) / pack_size)):
+        recon_loss_score = filtered_scores_list[i * pack_size:(i + 1) * pack_size]
         # mean_recon_loss_score = np.mean(recon_loss_score)
         # std_recon_loss_score = np.std(recon_loss_score)
         # print("mean_recon_loss_list:", mean_recon_loss_score)
@@ -189,10 +244,13 @@ if __name__=='__main__':
         # plt.show()
 
         # Apply PCA to reduce the dimensionality
-        pca = PCA(n_components=1)
-        recon_loss_score = pca.fit_transform(recon_loss_score)
+        # pca = PCA(n_components=1)
+        # recon_loss_score = pca.fit_transform(recon_loss_score)
+
+
         pca_scores = recon_loss_score
-        name = f"{i}_pca_scores"
+        # plt.figure(figsize=(10, 5))
+        name = f"{i}scores"
         plt.plot(pca_scores, label=name)
 
         # 计算均值和标准差
@@ -210,6 +268,10 @@ if __name__=='__main__':
             # 把eta_mean保存到txt文件中
             with open('eta.txt', 'w') as f:
                 f.write(str(eta_l) + ", " + str(eta_h))
+        # else:
+        #     # 添加水平标线
+        #     plt.axhline(y=eta_l, color='r', linestyle='--', label=f'Lowest_eta: {eta_l:.4f}')
+        #     plt.axhline(y=eta_h, color='g', linestyle='--', label=f'Highest_eta: {eta_h:.4f}')
 
         # normal_scores = np.array(normal_scores)  # 转换为 NumPy 数组
         # from sklearn.preprocessing import MinMaxScaler
@@ -221,8 +283,8 @@ if __name__=='__main__':
 
     plt.legend()
     plt.grid(True)  # 可以添加网格线
-    plt.title("pca_scores")
-    plt.savefig("pca_scores")  # 保存图像
+    plt.title("mean_scores")
+    plt.savefig("mean_scores")  # 保存图像
     plt.show()
 
 

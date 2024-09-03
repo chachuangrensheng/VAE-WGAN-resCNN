@@ -214,7 +214,7 @@ if __name__=='__main__':
     min_value = np.min(filtered_scores_list)
     max_value = np.max(filtered_scores_list)
     # 应用最小-最大标准化
-    filtered_scores_list = (filtered_scores_list - min_value) / (max_value - min_value)
+    # filtered_scores_list = (filtered_scores_list - min_value) / (max_value - min_value)
     # 将[0, 1]范围的数据缩放到[-1, 1]的范围
     # filtered_scores_list = filtered_scores_list * 2 - 1
 

@@ -40,7 +40,7 @@ class CustomImageDataset(Dataset):
                             # 将文件夹名称作为标签
                             self.labels.append(1)
                 elif  not self.train:
-                    if label == '0'and not yu:
+                    if label == '5'and not yu:
                         i = 600
                         for img_file in os.listdir(folder_path):
                             # 跳过前600个文件

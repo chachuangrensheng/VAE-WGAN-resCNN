@@ -1,6 +1,7 @@
 from torchvision.utils import make_grid , save_image
 import numpy as np
 import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 import os
@@ -55,3 +56,14 @@ def plot_loss(loss_list, filename):
     plt.grid(True)  # 可以添加网格线
     plt.savefig(filename)  # 保存图像
     plt.show()
+
+def loss_function(recon_x,x,mean,logstd):
+    # BCE = F.binary_cross_entropy(recon_x,x,reduction='sum')
+    MSECriterion = nn.MSELoss().to(device)
+    MSE = MSECriterion(recon_x,x)
+    # 因为var是标准差的自然对数，先求自然对数然后平方转换成方差
+    var = torch.pow(torch.exp(logstd),2)
+    KLD = -0.5 * torch.sum(1+torch.log(var)-torch.pow(mean,2)-var)
+    return MSE
+
+
