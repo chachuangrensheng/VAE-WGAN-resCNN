@@ -144,7 +144,7 @@ if __name__ == '__main__':
             x_l = discrim(datav)[1]
 
             rec_loss = ((x_l_tilda - x_l) ** 2)
-            rec_loss_mean = rec_enc.mean()
+            rec_loss_mean = x_l_tilda.mean()
             # 将重构损失添加到列表中，用于后续统计或输出
             recon_loss_list.append(rec_loss_mean.cpu().numpy())
             # 将重构损失添加到列表中，用于后续统计或输出

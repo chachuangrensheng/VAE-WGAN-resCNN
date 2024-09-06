@@ -19,7 +19,7 @@ torch.autograd.set_detect_anomaly(True)
 from dataloader import CustomImageDataset
 from utils import show_and_save, plot_loss, TopHalfCrop
 
-from models4 import VAE_GAN, Discriminator
+from models4_5 import VAE_GAN, Discriminator
 
 
 if __name__ == '__main__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_1'
+    models_dir = 'models4_8'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma = 15
 
@@ -154,14 +154,15 @@ if __name__ == '__main__':
             # 计算重构损失，即隐藏特征的平方差的均值
 
             # 通过鉴别器获取重构数据的隐藏特征
-            x_l_tilda = discrim(rec_enc)[1]
+            # x_l_tilda = discrim(rec_enc)[1]
             # 通过鉴别器获取原始数据的隐藏特征
-            x_l = discrim(datav)[1]
+            # x_l = discrim(datav)[1]
             # rec_loss = ((x_l_tilda - x_l) ** 2)
             # rec_loss_mean = rec_loss.mean()
             # 计算解码器的错误，结合重构损失和生成对抗损失
             # err_dec = gamma * rec_loss_mean - gan_loss
-            err_dec = x_l_tilda.mean()
+            # err_dec = x_l_tilda.mean()
+            err_dec =  rec_enc.mean()
             # 将重构损失添加到列表中，用于后续统计或输出
             recon_loss_list.append(err_dec.cpu().numpy())
             # recon_loss_list.append(rec_loss_mean.cpu().numpy())
@@ -203,7 +204,7 @@ if __name__ == '__main__':
         max_value = np.max(filtered_scores_list)
 
         # 应用最小-最大标准化
-        filtered_scores_list = (filtered_scores_list - min_value) / (max_value - min_value)
+        # filtered_scores_list = (filtered_scores_list - min_value) / (max_value - min_value)
         # # 将[0, 1]范围的数据缩放到[-1, 1]的范围
         # recon_loss_normalized = recon_loss_normalized * 2 - 1
         # 绘制评分曲线

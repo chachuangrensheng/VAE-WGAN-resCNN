@@ -14,7 +14,7 @@ from sklearn.decomposition import PCA
 from dataloader import CustomImageDataset
 from utils import show_and_save,plot_loss,TopHalfCrop
 
-from models4 import VAE_GAN,Discriminator
+from models4_5 import VAE_GAN,Discriminator
 
 
 if __name__=='__main__':
@@ -27,7 +27,7 @@ if __name__=='__main__':
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_1'
+    models_dir = 'models4_8'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma=15
     # 阈值调整系数
@@ -175,10 +175,11 @@ if __name__=='__main__':
             # 计算解码器的错误，结合重构损失和生成对抗损失
             # err_dec = rec_loss_mean
             # 通过鉴别器获取重构数据的隐藏特征
-            x_l_tilda = discrim(rec_enc)[1]
+            # x_l_tilda = discrim(rec_enc)[1]
             # 通过鉴别器获取原始数据的隐藏特征
-            x_l = discrim(datav)[1]
-            err_dec = x_l_tilda.mean()
+            # x_l = discrim(datav)[1]
+            # err_dec = x_l_tilda.mean()
+            err_dec = rec_enc.mean()
             # 将重构损失添加到列表中，用于后续统计或输出
             recon_loss_list.append(err_dec.cpu().numpy())
             # recon_loss_list.append(rec_loss_mean.cpu().numpy())
