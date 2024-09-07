@@ -27,7 +27,7 @@ if __name__=='__main__':
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_8'
+    models_dir = 'models4_11'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma=15
     # 阈值调整系数

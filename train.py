@@ -26,12 +26,12 @@ if __name__=='__main__':
     # 数据集路径
     root_dir = './data2'
     # 创建保存模型的文件夹
-    models_dir = './models4_9'
+    models_dir = './models4_13'
     if not os.path.exists(models_dir):
         os.makedirs(models_dir)
 
     # 创建保存生成图片的文件夹
-    image_dir = './image_mod4_9'
+    image_dir = './image_mod4_13'
     if not os.path.exists(image_dir):
         os.makedirs(image_dir)
 

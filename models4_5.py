@@ -125,16 +125,16 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
         self.layer1 = nn.Sequential(
-            ResidualBlock(3, 64, 5, padding=2, stride=2),
-            # CBAMBlock(channel=64, kernel_size=7)
+            ResidualBlock1(3, 64, 5, padding=2, stride=2),
+            CBAMBlock(channel=64, kernel_size=7)
         )
         self.layer2 = nn.Sequential(
-            ResidualBlock(64, 128, 5, padding=2, stride=2),
-            # CBAMBlock(channel=128, kernel_size=5)
+            ResidualBlock1(64, 128, 5, padding=2, stride=2),
+            CBAMBlock(channel=128, kernel_size=5)
         )
         self.layer3 = nn.Sequential(
-            ResidualBlock(128, 256, 5, padding=2, stride=2),
-            # CBAMBlock(channel=256, kernel_size=3)
+            ResidualBlock1(128, 256, 5, padding=2, stride=2),
+            CBAMBlock(channel=256, kernel_size=3)
         )
         self.relu = nn.LeakyReLU(0.2)
         self.fc1 = nn.Linear(256 * fc_height * fc_width, 2048)
@@ -162,16 +162,16 @@ class Decoder(nn.Module):
         self.bn1 = nn.BatchNorm1d(fc_height * fc_width * 256, momentum=0.9)
         self.relu = nn.LeakyReLU(0.2)
         self.layer1 = nn.Sequential(
-            ResidualBlockUp1(256, 256, 5, padding=2, stride=2),
-            # CBAMBlock(channel=256, kernel_size=3)
+            ResidualBlockUp(256, 256, 5, padding=2, stride=2),
+            CBAMBlock(channel=256, kernel_size=3)
         )
         self.layer2 = nn.Sequential(
-            ResidualBlockUp1(256, 128, 5, padding=2, stride=2),
-            # CBAMBlock(channel=128, kernel_size=5)
+            ResidualBlockUp(256, 128, 5, padding=2, stride=2),
+            CBAMBlock(channel=128, kernel_size=5)
         )
         self.layer3 = nn.Sequential(
-            ResidualBlockUp1(128, 64, 5, padding=2, stride=2),
-            # CBAMBlock(channel=64, kernel_size=7)
+            ResidualBlockUp(128, 64, 5, padding=2, stride=2),
+            CBAMBlock(channel=64, kernel_size=7)
         )
         self.deconv4 = nn.ConvTranspose2d(64, 3, 5, stride=1, padding=2)
         self.tanh = nn.Tanh()
@@ -194,16 +194,16 @@ class Discriminator(nn.Module):
         self.conv1 = nn.Conv2d(3, 32, 5, padding=2, stride=1)
         self.relu = nn.LeakyReLU(0.2)
         self.layer1 = nn.Sequential(
-            ResidualBlock(32, 128, 5, padding=2, stride=2),
-            # CBAMBlock(channel=128, kernel_size=7)
+            ResidualBlock1(32, 128, 5, padding=2, stride=2),
+            CBAMBlock(channel=128, kernel_size=7)
         )
         self.layer2 = nn.Sequential(
-            ResidualBlock(128, 256, 5, padding=2, stride=2),
-            # CBAMBlock(channel=256, kernel_size=5)
+            ResidualBlock1(128, 256, 5, padding=2, stride=2),
+            CBAMBlock(channel=256, kernel_size=5)
         )
         self.layer3 = nn.Sequential(
-            ResidualBlock(256, 256, 5, padding=2, stride=2),
-            # CBAMBlock(channel=256, kernel_size=3)
+            ResidualBlock1(256, 256, 5, padding=2, stride=2),
+            CBAMBlock(channel=256, kernel_size=3)
         )
         self.fc1 = nn.Linear(fc_height * fc_width * 256, 512)
         self.bn4 = nn.BatchNorm1d(512, momentum=0.9)
