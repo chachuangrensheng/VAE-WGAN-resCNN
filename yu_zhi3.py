@@ -14,7 +14,7 @@ from sklearn.decomposition import PCA
 from dataloader import CustomImageDataset
 from utils import show_and_save,plot_loss,TopHalfCrop
 
-from models4_5 import VAE_GAN,Discriminator
+from models4_6 import VAE_GAN,Discriminator
 
 
 if __name__=='__main__':
@@ -27,7 +27,7 @@ if __name__=='__main__':
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_11'
+    models_dir = 'models4_6'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma=15
     # 阈值调整系数
@@ -120,7 +120,8 @@ if __name__=='__main__':
             # 通过生成模型获得输入数据的均值、对数方差和重构输出
             # 设置随机种子
             torch.manual_seed(0)
-            mean, logvar, rec_enc = vae_gan(datav)
+            # mean, logvar, rec_enc, z = vae_gan(datav)
+            rec_enc, z = vae_gan(datav)
             # # 创建形状为64,128的正态分布随机变量，用作生成新样本的输入
             # z_p = Variable(torch.randn(batch_size, 128).to(device))
             # # 使用生成模型的解码器生成新样本
@@ -179,6 +180,7 @@ if __name__=='__main__':
             # 通过鉴别器获取原始数据的隐藏特征
             # x_l = discrim(datav)[1]
             # err_dec = x_l_tilda.mean()
+            # err_dec = rec_enc.mean()
             err_dec = rec_enc.mean()
             # 将重构损失添加到列表中，用于后续统计或输出
             recon_loss_list.append(err_dec.cpu().numpy())

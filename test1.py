@@ -19,7 +19,7 @@ torch.autograd.set_detect_anomaly(True)
 from dataloader import CustomImageDataset
 from utils import show_and_save, plot_loss, TopHalfCrop
 
-from models4_5 import VAE_GAN, Discriminator
+from models4_6 import VAE_GAN, Discriminator
 
 
 if __name__ == '__main__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_11'
+    models_dir = 'models4_6'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma = 15
 
@@ -98,17 +98,17 @@ if __name__ == '__main__':
     # 预先准备随机噪声z_fixed和真实样本x_fixed用于后续固定条件下的模型测试
     z_fixed = Variable(torch.randn((batch_size, 128)).to(device))
     x_fixed = Variable(real_batch[0].to(device))
-    # 从生成模型中获取特定输出，用于后续操作
-    b = vae_gan(x_fixed)[2]
-    # 从计算图中分离张量，避免梯度计算
-    b = b.detach()
-    # 使用固定的随机向量通过生成模型的解码器，获取特定输出
-    c = vae_gan.decoder(z_fixed)
-    # 从计算图中分离张量，避免梯度计算
-    c = c.detach()
-    # 使用make_grid函数将特定输出转换为网格形式，并保存为图片
-    show_and_save(f'test_noise', make_grid((c * 0.5 + 0.5).cpu(), 1))
-    show_and_save(f'test', make_grid((b * 0.5 + 0.5).cpu(), 1))
+    # # 从生成模型中获取特定输出，用于后续操作
+    # b = vae_gan(x_fixed)[2]
+    # # 从计算图中分离张量，避免梯度计算
+    # b = b.detach()
+    # # 使用固定的随机向量通过生成模型的解码器，获取特定输出
+    # c = vae_gan.decoder(z_fixed)
+    # # 从计算图中分离张量，避免梯度计算
+    # c = c.detach()
+    # # 使用make_grid函数将特定输出转换为网格形式，并保存为图片
+    # show_and_save(f'test_noise', make_grid((c * 0.5 + 0.5).cpu(), 1))
+    # show_and_save(f'test', make_grid((b * 0.5 + 0.5).cpu(), 1))
     # empty_cache()
     # 重构损失列表
     recon_loss_list = []
@@ -136,7 +136,8 @@ if __name__ == '__main__':
 
             # 设置随机种子
             torch.manual_seed(0)
-            mean, logvar, rec_enc = vae_gan(datav)
+            # mean, logvar, rec_enc = vae_gan(datav)
+            rec_enc, z = vae_gan(datav)
 
             # # 创建形状为批量大小的全1张量，用作真实样本的标签
             # ones_label = Variable(torch.ones(bs, 1).to(device))
@@ -162,19 +163,12 @@ if __name__ == '__main__':
             # 计算解码器的错误，结合重构损失和生成对抗损失
             # err_dec = gamma * rec_loss_mean - gan_loss
             # err_dec = x_l_tilda.mean()
+            # err_dec =  rec_enc.mean()
             err_dec =  rec_enc.mean()
             # 将重构损失添加到列表中，用于后续统计或输出
             recon_loss_list.append(err_dec.cpu().numpy())
             # recon_loss_list.append(rec_loss_mean.cpu().numpy())
             # recon_loss_list.extend(rec_loss.cpu().numpy())
-
-
-        # # 鲁棒标准化
-        # median = np.median(recon_loss_list)  # 计算中位数
-        # q1 = np.percentile(recon_loss_list, 25)  # 计算第1四分位数（25%）
-        # q3 = np.percentile(recon_loss_list, 75)  # 计算第3四分位数（75%）
-        # iqr = q3 - q1  # 计算四分位间距
-        # recon_loss_normalized  = (recon_loss_list - median) / iqr  # 进行鲁棒标准化
 
         # 将列表转换为 NumPy 数组以便进行数值操作
         recon_loss_list = np.array(recon_loss_list)
@@ -209,7 +203,20 @@ if __name__ == '__main__':
         # recon_loss_normalized = recon_loss_normalized * 2 - 1
         # 绘制评分曲线
         name = f"scores"
-        plt.plot(filtered_scores_list.reshape(-1,1), label=name)
+        filtered_scores_list = filtered_scores_list.reshape(-1, 1)
+        plt.figure(figsize=(10, 5))
+        # 将数据分为两部分
+        part1 = filtered_scores_list[:pack_size]
+        part2 = filtered_scores_list[pack_size:]
+        # 分别获取前600和后600个数据的索引
+        indices1 = np.arange(pack_size)
+        indices2 = np.arange(pack_size, pack_size*2)
+        # 绘制前600个数据，使用蓝色曲线
+        plt.plot(indices1, part1, label='Normal data')
+        # 绘制后600个数据，使用橙色曲线
+        plt.plot(indices2, part2, label='Abnormal data')
+
+        # plt.plot(filtered_scores_list, label=name)
         # 添加水平标线
         plt.axhline(y=eta_l, color='r', linestyle='--', label=f'Lowest_eta: {eta_l:.4f}')
         plt.axhline(y=eta_h, color='g', linestyle='--', label=f'Highest_eta: {eta_h:.4f}')
