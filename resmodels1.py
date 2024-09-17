@@ -33,41 +33,48 @@ fc_width = 13
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=5, padding=2, stride=2):
         super(ResidualBlock, self).__init__()
-        # 使用1x1卷积调整通道数
-        # self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(out_channels, momentum=0.9)
         self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding, stride=stride)
         self.relu = nn.LeakyReLU(0.2)
-        # self.bn2 = nn.BatchNorm2d(out_channels, momentum=0.9)
+        self.bn2 = nn.BatchNorm2d(out_channels, momentum=0.9)
         self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
-        # self.downsample1 = nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=stride, bias=False)
-        # self.bn3 = nn.BatchNorm2d(out_channels, momentum=0.9)
+        self.bn3 = nn.BatchNorm2d(out_channels, momentum=0.9)
 
     def forward(self, x):
         identity = self.downsample(x)
-        # identity = self.bn3(identity)
-        # identity = self.downsample1(identity)
-        # identity = self.bn3(identity)
-
-        # out = self.conv1(x)
-        # out = self.bn1(out)
-        # out = self.relu(out)
+        identity = self.bn3(identity)
 
         out = self.conv2(x)
-        # out = self.bn2(out)
+        out = self.bn2(out)
 
         out += identity
         out = self.relu(out)
 
         return out
 
+class ResidualBlock1(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=5, padding=2, stride=2):
+        super(ResidualBlock1, self).__init__()
+        self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding, stride=stride)
+        self.relu = nn.LeakyReLU(0.2)
+        self.bn2 = nn.BatchNorm2d(out_channels, momentum=0.9)
+        # self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
+        # self.bn3 = nn.BatchNorm2d(out_channels, momentum=0.9)
 
-# 残差网络类，用于Decoder的上采样
+    def forward(self, x):
+        # identity = self.downsample(x)
+        # identity = self.bn3(identity)
+
+        out = self.conv2(x)
+        out = self.bn2(out)
+
+        # out += identity
+        out = self.relu(out)
+
+        return out
+
 class ResidualBlockUp(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=5, padding=2, stride=2):
         super(ResidualBlockUp, self).__init__()
-        # self.deconv1 = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(out_channels, momentum=0.9)
         self.deconv2 = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, padding=padding, stride=stride)
         self.relu = nn.LeakyReLU(0.2)
         self.bn2 = nn.BatchNorm2d(out_channels, momentum=0.9)
@@ -75,13 +82,8 @@ class ResidualBlockUp(nn.Module):
         self.bn3 = nn.BatchNorm2d(out_channels, momentum=0.9)
 
     def forward(self, x):
-        # identity = x
         identity = self.upsample(x)
         identity = self.bn3(identity)
-
-        # out = self.deconv1(x)
-        # out = self.bn1(out)
-        # out = self.relu(out)
 
         out = self.deconv2(x)
         out = self.bn2(out)
@@ -90,6 +92,34 @@ class ResidualBlockUp(nn.Module):
         out = self.relu(out)
 
         return out
+# 残差网络类，用于Decoder的上采样
+class ResidualBlockUp1(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=5, padding=2, stride=2):
+        super(ResidualBlockUp1, self).__init__()
+        # self.deconv1 = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        # self.bn1 = nn.BatchNorm2d(out_channels, momentum=0.9)
+        self.deconv2 = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, padding=padding, stride=stride)
+        self.relu = nn.LeakyReLU(0.2)
+        self.bn2 = nn.BatchNorm2d(out_channels, momentum=0.9)
+        # self.upsample = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=stride)
+        # self.bn3 = nn.BatchNorm2d(out_channels, momentum=0.9)
+
+    def forward(self, x):
+        # identity = self.upsample(x)
+        # identity = self.bn3(identity)
+
+        # out = self.deconv1(x)
+        # out = self.bn1(out)
+        # out = self.relu(out)
+
+        out = self.deconv2(x)
+        out = self.bn2(out)
+
+        # out += identity
+        out = self.relu(out)
+
+        return out
+
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -132,18 +162,18 @@ class Decoder(nn.Module):
         self.bn1 = nn.BatchNorm1d(fc_height * fc_width * 256, momentum=0.9)
         self.relu = nn.LeakyReLU(0.2)
         self.layer1 = nn.Sequential(
-            ResidualBlockUp(256, 256, 5, padding=2, stride=2),
+            ResidualBlockUp1(256, 256, 5, padding=2, stride=2),
             CBAMBlock(channel=256, kernel_size=3)
         )
         self.layer2 = nn.Sequential(
-            ResidualBlockUp(256, 128, 5, padding=2, stride=2),
+            ResidualBlockUp1(256, 128, 5, padding=2, stride=2),
             CBAMBlock(channel=128, kernel_size=5)
         )
         self.layer3 = nn.Sequential(
-            ResidualBlockUp(128, 64, 5, padding=2, stride=2),
+            ResidualBlockUp1(128, 64, 5, padding=2, stride=2),
             CBAMBlock(channel=64, kernel_size=7)
         )
-        self.deconv4 = nn.ConvTranspose2d(64, 3, 5, stride=1, padding=1)
+        self.deconv4 = nn.ConvTranspose2d(64, 3, 5, stride=1, padding=2)
         self.tanh = nn.Tanh()
 
     def forward(self, x):
@@ -176,9 +206,9 @@ class Discriminator(nn.Module):
             CBAMBlock(channel=256, kernel_size=3)
         )
         self.fc1 = nn.Linear(fc_height * fc_width * 256, 512)
-        # self.bn4 = nn.BatchNorm1d(512, momentum=0.9)
+        self.bn4 = nn.BatchNorm1d(512, momentum=0.9)
         self.fc2 = nn.Linear(512, 1)
-        # self.sigmoid = nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         batch_size = x.size()[0]
@@ -188,8 +218,8 @@ class Discriminator(nn.Module):
         x = self.layer3(x)
         x = x.view(-1, 256 * fc_height * fc_width)
         x1 = x
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.relu(self.bn4(self.fc1(x)))
+        x = self.sigmoid(self.fc2(x))
 
         return x, x1
 

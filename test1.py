@@ -19,7 +19,7 @@ torch.autograd.set_detect_anomaly(True)
 from dataloader import CustomImageDataset
 from utils import show_and_save, plot_loss, TopHalfCrop
 
-from models4_6 import VAE_GAN, Discriminator
+from resmodels1 import VAE_GAN, Discriminator
 
 
 if __name__ == '__main__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_6'
+    models_dir = 'resmodels1'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma = 15
 
@@ -136,8 +136,8 @@ if __name__ == '__main__':
 
             # 设置随机种子
             torch.manual_seed(0)
-            # mean, logvar, rec_enc = vae_gan(datav)
-            rec_enc, z = vae_gan(datav)
+            mean, logvar, rec_enc = vae_gan(datav)
+            # rec_enc, z = vae_gan(datav)
 
             # # 创建形状为批量大小的全1张量，用作真实样本的标签
             # ones_label = Variable(torch.ones(bs, 1).to(device))
@@ -240,10 +240,10 @@ if __name__ == '__main__':
             for lab, score in zip(all_labels[i * pack_size:(i + 1) * pack_size], scores):
                 anomalies = (score < eta_l) or (score > eta_h)
                 if anomalies:
-                    a = 0
+                    a = 1
                     # print("异常!")
                 else:
-                    a = 1
+                    a = 0
                     # print("正常")
                 y.append(a)
                 y_batch.append(a)
@@ -266,9 +266,35 @@ if __name__ == '__main__':
 
         # 绘制混淆矩阵
         conf_matrix = confusion_matrix(all_labels, y)
-        conf_matrix_df = pd.DataFrame(conf_matrix, columns=[str(i) for i in range(2)],
-                                      index=[str(i) for i in range(2)])
-
+        # 获取矩阵的尺寸
+        n, m = conf_matrix.shape
+        # 创建一个新的矩阵用于存放调整后的值
+        new_conf_matrix = np.zeros((n, m), dtype=int)
+        # 交换元素
+        new_conf_matrix[0, 0] = conf_matrix[-1, -1]
+        new_conf_matrix[0, -1] = conf_matrix[-1, 0]
+        new_conf_matrix[-1, 0] = conf_matrix[0, -1]
+        new_conf_matrix[-1, -1] = conf_matrix[0, 0]
+        # conf_matrix_df = pd.DataFrame(conf_matrix, columns=[str(i) for i in range(2)],
+        #                               index=[str(i) for i in range(2)])
+        conf_matrix_df = pd.DataFrame(new_conf_matrix, columns=[1,0],
+                                      index=[1,0])
+        # 计算精确率、召回率和 F1 指标
+        TP = new_conf_matrix[0, 0]  # 真正例
+        FP = new_conf_matrix[0, 1]  # 假正例
+        FN = new_conf_matrix[1, 0]  # 假负例
+        TN = new_conf_matrix[1, 1]  # 真负例
+        # 精确率
+        precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+        # 召回率
+        recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+        # F1 指标
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        # 打印结果
+        print(f"Confusion Matrix:\n{conf_matrix_df}")
+        print(f"Precision: {precision:.4f}")
+        print(f"Recall: {recall:.4f}")
+        print(f"F1 Score: {f1_score:.4f}")
         # 计算正确率和错误率矩阵
         accuracy_matrix = np.diag(conf_matrix) / np.sum(conf_matrix, axis=1)
         error_matrix = 1 - accuracy_matrix
@@ -288,8 +314,10 @@ if __name__ == '__main__':
         # 混淆矩阵
         ax0 = fig.add_subplot(gs[0, 0])
         sns.heatmap(conf_matrix_df, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax0)
-        ax0.set_xlabel('Predicted')
-        ax0.set_ylabel('True')
+        # ax0.set_xlabel('Predicted')
+        # ax0.set_ylabel('True')
+        ax0.set_ylabel('Predicted')
+        ax0.set_xlabel('True')
 
         # 正确率矩阵
         ax1 = fig.add_subplot(gs[0, 1])

@@ -5,6 +5,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset, random_split
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import norm
 from torch.autograd import Variable
 from torchvision.utils import make_grid
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -14,7 +16,8 @@ from sklearn.decomposition import PCA
 from dataloader import CustomImageDataset
 from utils import show_and_save,plot_loss,TopHalfCrop
 
-from models4_6 import VAE_GAN,Discriminator
+from resmodels1 import VAE_GAN,Discriminator
+# from models4_5 import VAE_GAN,Discriminator
 
 
 if __name__=='__main__':
@@ -23,18 +26,18 @@ if __name__=='__main__':
     # 每包数据大小
     pack_size = 600
     # 故障数据大小
-    fault_size = 200
+    fault_size = 100
     # 数据集路径
     root_dir = './data2'
     # 模型保存的文件夹
-    models_dir = 'models4_6'
+    models_dir = 'resmodels1'
     # 定义gamma参数，用于模型中的折扣因子或加权系数
     gamma=15
     # 阈值调整系数
     C = 3
     # 数据预处理
     transform = transforms.Compose([
-        transforms.Resize((150, 100)),  # 根据需要调整图像大小
+        transforms.Resize((150, 99)),  # 根据需要调整图像大小
         TopHalfCrop(),  # 保留上半部分，裁剪掉下半部分
         transforms.ToTensor(),  # 将PIL图像转换为Tensor
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 标准化
@@ -120,8 +123,8 @@ if __name__=='__main__':
             # 通过生成模型获得输入数据的均值、对数方差和重构输出
             # 设置随机种子
             torch.manual_seed(0)
-            # mean, logvar, rec_enc, z = vae_gan(datav)
-            rec_enc, z = vae_gan(datav)
+            mean, logvar, rec_enc = vae_gan(datav)
+            # rec_enc, z = vae_gan(datav)
             # # 创建形状为64,128的正态分布随机变量，用作生成新样本的输入
             # z_p = Variable(torch.randn(batch_size, 128).to(device))
             # # 使用生成模型的解码器生成新样本
@@ -179,9 +182,11 @@ if __name__=='__main__':
             # x_l_tilda = discrim(rec_enc)[1]
             # 通过鉴别器获取原始数据的隐藏特征
             # x_l = discrim(datav)[1]
-            # err_dec = x_l_tilda.mean()
-            # err_dec = rec_enc.mean()
+            # rec_loss = ((x_l_tilda + x_l) ** 2)
+            # err_dec = x_l.mean()
+            # err_dec = (rec_enc - datav).mean()
             err_dec = rec_enc.mean()
+            # err_dec = rec_loss.mean()
             # 将重构损失添加到列表中，用于后续统计或输出
             recon_loss_list.append(err_dec.cpu().numpy())
             # recon_loss_list.append(rec_loss_mean.cpu().numpy())
@@ -251,6 +256,38 @@ if __name__=='__main__':
 
         # 计算均值和标准差
         if i == 0:
+            pca_scores = recon_loss_score
+            # 绘制直方图
+            # # 返回的bins为列表，为频率分区
+            # n, bins, patches = plt.hist(pca_scores,
+            #                             density=True,  # true表示绘制的频率直方图总面积为1
+            #                             bins=30)  # 默认分为10组，可以通过调节bins值，扩大分组。
+            #
+            # # 计算样本的均值和标准差
+            # mu = pca_scores.mean()
+            # sigma = pca_scores.std()
+            # # 拟合一条最佳正态分布曲线y，y的值和分区bins的值对应
+            # y = norm.pdf(bins, mu, sigma)
+            # title = " mu = {:.2f},  std = {:.2f}".format(mu, sigma)
+            # plt.title(title, fontsize=14)
+            # plt.plot(bins, y, 'r--')  # 绘制y的曲线
+            # # 添加轴标签
+            # plt.xlabel('Refactoring features', fontsize=14)  # 横轴标签
+            # plt.ylabel('Frequency', fontsize=14)  # 纵轴标签
+
+
+            # Q-Q图
+            # from scipy import stats
+            # pca_scores = np.ravel(pca_scores)
+            # # plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
+            # stats.probplot(pca_scores, dist=stats.norm, plot=plt)
+            # plt.xlabel('Expected normal value', fontsize=14)
+            # plt.ylabel('Original data value', fontsize=14)
+            # plt.xlim(0, 0.15)
+            # plt.title(name)
+
+            # name = f"{i}scores"
+            # plt.plot(pca_scores, label=name)
             mean_score = np.mean(pca_scores)
             std_score = np.std(pca_scores)
             print("mean_score:", mean_score)
@@ -270,6 +307,7 @@ if __name__=='__main__':
     plt.grid(True)  # 可以添加网格线
     plt.title("mean_scores")
     plt.savefig("mean_scores")  # 保存图像
+    # plt.savefig("Q-Q_scores")  # 保存图像
     plt.show()
 
 

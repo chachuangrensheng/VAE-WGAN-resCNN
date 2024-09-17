@@ -38,7 +38,7 @@ class CustomImageDataset(Dataset):
                         if os.path.isfile(img_path):
                             self.images.append(img_path)
                             # 将文件夹名称作为标签
-                            self.labels.append(1)
+                            self.labels.append(0)
                 elif  not self.train:
                     if label == '0'and not yu:
                         i = 600
@@ -51,7 +51,7 @@ class CustomImageDataset(Dataset):
                             if os.path.isfile(img_path):
                                 self.images.append(img_path)
                                 # 将文件夹名称作为标签
-                                self.labels.append(1)
+                                self.labels.append(0)
 
                     if label != '0':
                         i = 0
@@ -66,7 +66,7 @@ class CustomImageDataset(Dataset):
                             if os.path.isfile(img_path):
                                 self.images.append(img_path)
                                 # 将文件夹名称作为标签
-                                self.labels.append(0)
+                                self.labels.append(1)
 
 
 
